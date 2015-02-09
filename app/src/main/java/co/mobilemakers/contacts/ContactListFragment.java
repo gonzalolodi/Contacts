@@ -1,9 +1,11 @@
 package co.mobilemakers.contacts;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ListFragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -11,12 +13,23 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.j256.ormlite.android.apptools.OpenHelperManager;
+import com.j256.ormlite.dao.Dao;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * A placeholder fragment containing a simple view.
  */
 public class ContactListFragment extends ListFragment {
 
     private final static int REQUEST_CODE = 0;
+    public final static String  LOG_TAG= ContactListFragment.class.getSimpleName();
+
+    ContactAdapter mContactAdapter;
+    DatabaseHelper mDBHelper = null;
 
     public ContactListFragment() {
     }
@@ -53,8 +66,86 @@ public class ContactListFragment extends ListFragment {
     }
 
     @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        prepareListView();
+    }
+
+    private void prepareListView() {
+        List<Contact> entries;
+        entries = getSavedContacts();
+        mContactAdapter = new ContactAdapter(getActivity(), entries);
+        setListAdapter(mContactAdapter);
+    }
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK) {
+                String firstname = data.getStringExtra(Contact.FIRSTNAME);
+                String lastname = data.getStringExtra(Contact.LASTNAME);
+                String nickname = data.getStringExtra(Contact.NICKNAME);
+                byte[] image = data.getByteArrayExtra(Contact.IMAGE);
+                Contact contact = setNewContactData(firstname, lastname, nickname, image);
+                contact = saveContactOnDB(contact);
+                mContactAdapter.add(contact);
+
+            }
+        }
+    }
+
+    private Contact setNewContactData(String firstname, String lastname, String nickname, byte[] image) {
+        Contact contact = new Contact();
+        contact.setFirstName(firstname);
+        contact.setLastName(lastname);
+        contact.setNickname(nickname);
+        contact.setImage(image);
+        return contact;
+    }
+
+    public DatabaseHelper getDBHelper() {
+        if (mDBHelper == null){
+            mDBHelper = OpenHelperManager.getHelper(getActivity(), DatabaseHelper.class);
+        }
+        return mDBHelper;
+    }
+
+    private List<Contact> getSavedContacts() {
+        List<Contact> contacts = new ArrayList<>();
+        try {
+            Dao<Contact,Integer> contactDao = getDBHelper().getContactDao();
+            contacts = contactDao.queryForAll();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return contacts;
+    }
+
+    private Contact saveContactOnDB(Contact contact) {
+        try {
+            Dao<Contact,Integer> dao = getDBHelper().getContactDao();
+            dao.create(contact);
+        } catch (SQLException e) {
+            Log.e(LOG_TAG, "Failed to create DAO.", e);
+        }
+
+        return contact;
+    }
+
+    @Override
+    public void onDestroy() {
+        if (mDBHelper!=null){
+            OpenHelperManager.releaseHelper();
+            mDBHelper = null;
+        }
+        super.onDestroy();
     }
 }
