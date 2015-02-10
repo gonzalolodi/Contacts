@@ -11,5 +11,6 @@
     <string name="edit_text_last_name">Enter last name</string>
     <string name="edit_text_nickname_hint">Enter nickname</string>
     <string name="button_done">Done!</string>
+    <string name="button_delete">Delete Contact</string>
 
 </resources>

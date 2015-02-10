@@ -24,12 +24,14 @@ import java.io.ByteArrayOutputStream;
 public class AddContactFragment extends Fragment {
 
     Button mButtonDone;
+    Button mButtonDelete;
     ImageButton mImageUserButton;
     Bitmap mImageBitmap;
     EditText mEditTextFirsName;
     EditText mEditTextLastName;
     EditText mEditTextNickname;
     byte[] mImageByteArray;
+    Boolean mActionEdit = false;
 
     final static int CAMERA_REQUEST_CODE = 1;
 
@@ -43,7 +45,43 @@ public class AddContactFragment extends Fragment {
         prepareEditTexts(rootView);
         prepareButtonDone(rootView);
         prepareImageButton(rootView);
+        if (getActivity().getIntent().getStringExtra(ContactListFragment.ACTION).equals(ContactListFragment.ACTION_EDIT)) {
+            prepareEditScreen(rootView);
+            mActionEdit = true;
+        }
         return rootView;
+    }
+
+    private void prepareEditScreen(View rootView) {
+        mEditTextFirsName.setText(getActivity().getIntent().getStringExtra(Contact.FIRSTNAME));
+        mEditTextLastName.setText(getActivity().getIntent().getStringExtra(Contact.LASTNAME));
+        mEditTextNickname.setText(getActivity().getIntent().getStringExtra(Contact.NICKNAME));
+        mImageUserButton.setImageBitmap(convertToBitmap(getActivity().getIntent().getByteArrayExtra(Contact.IMAGE)));
+        mImageByteArray = getActivity().getIntent().getByteArrayExtra(Contact.IMAGE);
+        prepareButtonDelete(rootView);
+    }
+
+    private void prepareButtonDelete(View rootView) {
+        mButtonDelete = (Button) rootView.findViewById(R.id.button_delete);
+        mButtonDelete.setVisibility(View.VISIBLE);
+        mButtonDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Activity activity = getActivity();
+                Intent intentResult = getResultIntent();
+                intentResult.putExtra(ContactListFragment.ACTION, ContactListFragment.ACTION_DELETE);
+                activity.setResult(Activity.RESULT_OK, intentResult);
+                activity.finish();
+            }
+        });
+    }
+
+    private Bitmap convertToBitmap(byte[] image) {
+        Bitmap bmp;
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inMutable = true;
+        bmp = BitmapFactory.decodeByteArray(image, 0, image.length, options);
+        return bmp;
     }
 
     private void prepareEditTexts(View rootView) {
@@ -76,6 +114,11 @@ public class AddContactFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 Intent intent = getResultIntent();
+                if (mActionEdit){
+                    intent.putExtra(ContactListFragment.ACTION, ContactListFragment.ACTION_EDIT);
+                } else {
+                    intent.putExtra(ContactListFragment.ACTION, ContactListFragment.ACTION_ADD);
+                }
                 Activity activity = getActivity();
                 activity.setResult(Activity.RESULT_OK, intent);
                 activity.finish();

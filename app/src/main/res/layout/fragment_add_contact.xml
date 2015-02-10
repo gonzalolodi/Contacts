@@ -35,11 +35,19 @@
         android:hint="@string/edit_text_nickname_hint" />
 
     <Button
-        android:layout_width="wrap_content"
+        android:layout_width="150dp"
         android:layout_height="wrap_content"
         android:text="@string/button_done"
         android:id="@+id/button_done"
         android:layout_gravity="center_horizontal"
         android:enabled="false" />
+
+    <Button
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:text="@string/button_delete"
+        android:id="@+id/button_delete"
+        android:layout_gravity="center_horizontal"
+        android:visibility="invisible" />
 
 </LinearLayout>

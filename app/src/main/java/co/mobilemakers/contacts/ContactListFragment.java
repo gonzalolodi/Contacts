@@ -12,6 +12,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
 
 import com.j256.ormlite.android.apptools.OpenHelperManager;
 import com.j256.ormlite.dao.Dao;
@@ -27,6 +28,10 @@ public class ContactListFragment extends ListFragment {
 
     private final static int REQUEST_CODE = 0;
     public final static String  LOG_TAG= ContactListFragment.class.getSimpleName();
+    public final static String ACTION_ADD = "add";
+    public final static String ACTION_EDIT = "edit";
+    public final static String ACTION_DELETE = "delete";
+    public final static String ACTION = "action";
 
     ContactAdapter mContactAdapter;
     DatabaseHelper mDBHelper = null;
@@ -54,6 +59,7 @@ public class ContactListFragment extends ListFragment {
         switch (id) {
             case R.id.action_add:
                 Intent intent = new Intent(getActivity(), AddContactActivity.class);
+                intent.putExtra(ACTION, ACTION_ADD);
                 startActivityForResult(intent, REQUEST_CODE);
                 handled = true;
                 break;
@@ -95,8 +101,29 @@ public class ContactListFragment extends ListFragment {
                 String nickname = data.getStringExtra(Contact.NICKNAME);
                 byte[] image = data.getByteArrayExtra(Contact.IMAGE);
                 Contact contact = setNewContactData(firstname, lastname, nickname, image);
-                contact = saveContactOnDB(contact);
-                mContactAdapter.add(contact);
+                if (data.getStringExtra(ACTION).equals(ACTION_ADD)){
+                    contact = saveContactOnDB(contact);
+                    mContactAdapter.add(contact);
+                } else {
+                    contact.setId(data.getIntExtra(Contact.ID, 1));
+                    if (data.getStringExtra(ACTION).equals(ACTION_EDIT)){
+                        try {
+                            Dao<Contact,Integer> dao = getDBHelper().getContactDao();
+                            dao.update(contact);
+                        } catch (SQLException e) {
+                            Log.e(LOG_TAG, "Failed to create DAO.", e);
+                        }
+                        mContactAdapter.add(contact);
+                    } else {
+                        try {
+                            Dao<Contact,Integer> dao = getDBHelper().getContactDao();
+                            dao.delete(contact);
+                        } catch (SQLException e) {
+                            Log.e(LOG_TAG, "Failed to create DAO.", e);
+                        }
+                        mContactAdapter.remove(contact);
+                    }
+                }
 
             }
         }
@@ -147,5 +174,21 @@ public class ContactListFragment extends ListFragment {
             mDBHelper = null;
         }
         super.onDestroy();
+    }
+
+    @Override
+    public void onListItemClick(ListView l, View v, int position, long id) {
+        super.onListItemClick(l, v, position, id);
+        Contact contact = mContactAdapter.getContactItem(position);
+        Intent intent = new Intent(getActivity(), AddContactActivity.class);
+        intent.putExtra(Contact.FIRSTNAME, contact.getFirstName());
+        intent.putExtra(Contact.LASTNAME, contact.getLastName());
+        intent.putExtra(Contact.NICKNAME, contact.getNickname());
+        intent.putExtra(Contact.IMAGE, contact.getImage());
+        intent.putExtra(Contact.ID, contact.getId());
+        intent.putExtra(ACTION, ACTION_EDIT);
+        startActivityForResult(intent, REQUEST_CODE);
+        mContactAdapter.remove(contact);
+
     }
 }
